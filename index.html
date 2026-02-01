@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mã Màu - 2 Chiều</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+        .slider-group {
+            margin: 10px 0;
+        }
+        .slider {
+            width: 200px;
+        }
+        .color-display {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #ccc;
+            margin: 20px auto;
+            border-radius: 5px;
+        }
+        .code-group {
+            margin: 10px 0;
+        }
+        .code-input {
+            width: 200px;
+            padding: 5px;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Mã Màu - 2 Chiều</h1>
+        
+        <div class="slider-group">
+            <label for="red">Red (0-255): <span id="red-value">128</span></label><br>
+            <input type="range" id="red" class="slider" min="0" max="255" value="128">
+        </div>
+        
+        <div class="slider-group">
+            <label for="green">Green (0-255): <span id="green-value">128</span></label><br>
+            <input type="range" id="green" class="slider" min="0" max="255" value="128">
+        </div>
+        
+        <div class="slider-group">
+            <label for="blue">Blue (0-255): <span id="blue-value">128</span></label><br>
+            <input type="range" id="blue" class="slider" min="0" max="255" value="128">
+        </div>
+        
+        <div class="slider-group">
+            <label for="alpha">Alpha (0-1): <span id="alpha-value">1</span></label><br>
+            <input type="range" id="alpha" class="slider" min="0" max="1" step="0.01" value="1">
+        </div>
+        
+        <div class="color-display" id="color-display"></div>
+        
+        <div class="code-group">
+            <label>Mã màu CSS (RGBA):</label><br>
+            <input type="text" id="rgba-input" class="code-input">
+            <button onclick="copyCode('rgba-input')">Sao chép</button>
+            <div class="error" id="rgba-error">Mã RGBA không hợp lệ</div>
+        </div>
+        
+        <div class="code-group">
+            <label>Mã màu HTML (HEX):</label><br>
+            <input type="text" id="hex-input" class="code-input">
+            <button onclick="copyCode('hex-input')">Sao chép</button>
+            <div class="error" id="hex-error">Mã HEX không hợp lệ</div>
+        </div>
+        
+        <div class="code-group">
+            <label>Mã màu CSS (HSL):</label><br>
+            <input type="text" id="hsl-input" class="code-input">
+            <button onclick="copyCode('hsl-input')">Sao chép</button>
+            <div class="error" id="hsl-error">Mã HSL không hợp lệ</div>
+        </div>
+    </div>
+
+    <script>
+        const redSlider = document.getElementById('red');
+        const greenSlider = document.getElementById('green');
+        const blueSlider = document.getElementById('blue');
+        const alphaSlider = document.getElementById('alpha');
+        const redValue = document.getElementById('red-value');
+        const greenValue = document.getElementById('green-value');
+        const blueValue = document.getElementById('blue-value');
+        const alphaValue = document.getElementById('alpha-value');
+        const colorDisplay = document.getElementById('color-display');
+        const rgbaInput = document.getElementById('rgba-input');
+        const hexInput = document.getElementById('hex-input');
+        const hslInput = document.getElementById('hsl-input');
+
+        // --- Chuyển đổi ---
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        function hexToRgb(hex) {
+            const shorthand = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            hex = hex.replace(shorthand, (m, r, g, b) => r + r + g + g + b + b);
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
+            if (!result) return null;
+            const r = parseInt(result[1], 16);
+            const g = parseInt(result[2], 16);
+            const b = parseInt(result[3], 16);
+            const a = result[4] ? parseInt(result[4], 16) / 255 : 1;
+            return { r, g, b, a };
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+        }
+
+        function hslToRgb(h, s, l, a = 1) {
+            s /= 100;
+            l /= 100;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = l - c / 2;
+            let r, g, b;
+
+            if (0 <= h && h < 60) { [r, g, b] = [c, x, 0]; }
+            else if (60 <= h && h < 120) { [r, g, b] = [x, c, 0]; }
+            else if (120 <= h && h < 180) { [r, g, b] = [0, c, x]; }
+            else if (180 <= h && h < 240) { [r, g, b] = [0, x, c]; }
+            else if (240 <= h && h < 300) { [r, g, b] = [x, 0, c]; }
+            else if (300 <= h && h < 360) { [r, g, b] = [c, 0, x]; }
+            else { [r, g, b] = [0, 0, 0]; }
+
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+            return { r, g, b, a };
+        }
+
+        function parseRgba(str) {
+            const regex = /rgba?\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*([\d.]+)\s*)?\)/i;
+            const match = str.match(regex);
+            if (!match) return null;
+            const r = parseInt(match[1]);
+            const g = parseInt(match[2]);
+            const b = parseInt(match[3]);
+            const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+            if (r > 255 || g > 255 || b > 255 || a > 1 || a < 0) return null;
+            return { r, g, b, a };
+        }
+
+        function parseHsla(str) {
+            const regex = /hsla?\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*(?:,\s*([\d.]+)\s*)?\)/i;
+            const match = str.match(regex);
+            if (!match) return null;
+            const h = parseInt(match[1]) % 360;
+            const s = parseInt(match[2]);
+            const l = parseInt(match[3]);
+            const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+            if (s > 100 || l > 100 || a > 1 || a < 0) return null;
+            return hslToRgb(h, s, l, a);
+        }
+
+        // --- Cập nhật UI từ giá trị RGB/Alpha ---
+        function updateUI(r, g, b, a) {
+            // Cập nhật slider và label
+            redSlider.value = r;
+            greenSlider.value = g;
+            blueSlider.value = b;
+            alphaSlider.value = a;
+
+            redValue.textContent = r;
+            greenValue.textContent = g;
+            blueValue.textContent = b;
+            alphaValue.textContent = a;
+
+            // Cập nhật ô hiển thị
+            const rgba = `rgba(${r}, ${g}, ${b}, ${a})`;
+            colorDisplay.style.backgroundColor = rgba;
+            rgbaInput.value = rgba;
+            hexInput.value = rgbToHex(r, g, b);
+            const [h, s, l] = rgbToHsl(r, g, b);
+            hslInput.value = `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        // --- Cập nhật từ slider ---
+        function updateColorFromSliders() {
+            const r = parseInt(redSlider.value);
+            const g = parseInt(greenSlider.value);
+            const b = parseInt(blueSlider.value);
+            const a = parseFloat(alphaSlider.value);
+            updateUI(r, g, b, a);
+        }
+
+        // --- Xử lý nhập từ input ---
+        function handleInput(inputId, parser, errorId) {
+            const input = document.getElementById(inputId);
+            const errorEl = document.getElementById(errorId);
+            const value = input.value.trim();
+
+            if (!value) {
+                errorEl.style.display = 'none';
+                return;
+            }
+
+            let result = null;
+            if (inputId === 'hex-input') {
+                result = hexToRgb(value);
+            } else if (inputId === 'rgba-input') {
+                result = parseRgba(value);
+            } else if (inputId === 'hsl-input') {
+                result = parseHsla(value);
+            }
+
+            if (result) {
+                errorEl.style.display = 'none';
+                updateUI(result.r, result.g, result.b, result.a);
+            } else {
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function copyCode(inputId) {
+            const input = document.getElementById(inputId);
+            input.select();
+            document.execCommand('copy');
+            alert('Mã đã được sao chép!');
+        }
+
+        // --- Gắn sự kiện ---
+        redSlider.addEventListener('input', updateColorFromSliders);
+        greenSlider.addEventListener('input', updateColorFromSliders);
+        blueSlider.addEventListener('input', updateColorFromSliders);
+        alphaSlider.addEventListener('input', updateColorFromSliders);
+
+        rgbaInput.addEventListener('input', () => handleInput('rgba-input', parseRgba, 'rgba-error'));
+        hexInput.addEventListener('input', () => handleInput('hex-input', hexToRgb, 'hex-error'));
+        hslInput.addEventListener('input', () => handleInput('hsl-input', parseHsla, 'hsl-error'));
+
+        // Khởi tạo
+        updateColorFromSliders();
+    </script>
+</body>
+</html>
